@@ -5,9 +5,10 @@ from streamlit_folium import st_folium
 import json
 import numpy as np
 
-# Configuration de l'interface Luca
+# 1. Configuration de la page
 st.set_page_config(page_title="Radar Luca TOTK", layout="wide")
 
+# 2. Chargement des données
 @st.cache_data
 def load_data():
     with open('02_shrines_details.json', 'r', encoding='utf-8') as f:
@@ -20,85 +21,90 @@ def load_data():
 if 'df' not in st.session_state:
     st.session_state.df = load_data()
 
-# Barre latérale pour Luca
-st.sidebar.header("📍 Position de Link")
-x_pos = st.sidebar.number_input("Coordonnée X", value=-565.0)
-y_pos = st.sidebar.number_input("Coordonnée Y", value=-3524.0)
-k_shrines = st.sidebar.slider("Sanctuaires à afficher", 1, 20, 10)
+# 3. Barre latérale : Saisie des coordonnées
+st.sidebar.title("🎮 Guide de Luca")
+x = st.sidebar.number_input("Position X", value=-254.0)
+y = st.sidebar.number_input("Position Y", value=107.0)
+k = st.sidebar.slider("Sanctuaires proches", 1, 20, 10)
 vitesse = st.sidebar.number_input("Vitesse (km/h)", value=8.5)
 
-# Calcul des distances et temps
+# 4. Calcul des plus proches
 def get_nearest(df, px, py, k, speed):
     temp = df.copy()
+    # Distance euclidienne
     temp['distance_m'] = np.sqrt((temp['x'] - px)**2 + (temp['y'] - py)**2)
     res = temp.sort_values('distance_m').head(k).copy()
+    # Calcul du temps
     speed_mps = speed / 3.6
-    res['temps'] = res['distance_m'].apply(lambda d: f"{int((d/speed_mps)//60)}min {int((d/speed_mps)%60)}s")
+    res['temps'] = res['distance_m'].apply(lambda d: f"{int((d/speed_mps)//60)}m {int((d/speed_mps)%60)}s")
     return res
 
-df_top = get_nearest(st.session_state.df, x_pos, y_pos, k_shrines, vitesse)
+df_top = get_nearest(st.session_state.df, x, y, k, vitesse)
 
-st.title("🏹 Radar Sheikah de Luca")
+# 5. Interface Principale
+st.title("🏹 Radar de Sanctuaires")
 
 col1, col2 = st.columns([2, 1])
 
 with col2:
-    st.subheader("Validation")
+    st.subheader("Action")
     target = st.selectbox("Sélectionner un sanctuaire :", df_top['name'].tolist())
     
-    status_val = st.session_state.df.loc[st.session_state.df['name'] == target, 'visité'].values[0]
-    is_done = (status_val == 1)
+    # Récupération du statut
+    current_status = st.session_state.df.loc[st.session_state.df['name'] == target, 'visité'].values[0]
     
-    if st.button("Marquer comme visité" if not is_done else "Annuler la visite", 
-                 type="primary" if not is_done else "secondary", use_container_width=True):
+    label = "✅ Marquer comme fait" if current_status == 0 else "↩️ Annuler la visite"
+    if st.button(label, use_container_width=True, type="primary" if current_status == 0 else "secondary"):
         idx = st.session_state.df[st.session_state.df['name'] == target].index[0]
-        st.session_state.df.at[idx, 'visité'] = 1 - status_val
+        st.session_state.df.at[idx, 'visité'] = 1 - current_status
         st.rerun()
-
-    st.write(f"📊 **Progression : {int(st.session_state.df['visité'].sum())} / 152**")
+    
+    st.metric("Progression Globale", f"{int(st.session_state.df['visité'].sum())} / 152")
+    st.write("---")
+    st.write("📋 **Détails proches :**")
+    st.dataframe(df_top[['name', 'distance_m', 'temps']], hide_index=True)
 
 with col1:
-    # 1. On définit les limites de la carte Hyrule
+    # --- CONFIGURATION CARTE ---
     limites = [[-4000, -5000], [4000, 5000]]
-
-    # 2. Création de la carte avec paramètres de zoom optimisés
+    
+    # Création de l'objet Map
     m = folium.Map(
         crs='Simple', 
         location=[y, x], 
-        zoom_start=-1,      # On commence avec un dézoom (négatif pour crs='Simple')
-        min_zoom=-2,       # Permet de dézoomer encore plus pour voir tout Hyrule
-        max_zoom=2,        # Limite le zoom pour ne pas devenir trop flou
-        zoom_control=True
+        zoom_start=-1, 
+        min_zoom=-3, 
+        max_zoom=2
     )
     
-    # 3. Ajout de l'image de fond
+    # Image de fond
     folium.raster_layers.ImageOverlay(
         image="TOTK_Hyrule_Map.png", 
         bounds=limites, 
         opacity=0.8
     ).add_to(m)
 
-    # 4. Ajuster la vue pour que TOUTE l'image soit visible dès le départ
+    # Ajustement automatique au démarrage
     m.fit_bounds(limites)
 
-    # 5. Ajout des marqueurs (Link et Sanctuaires)
+    # Marqueur Link (Vert)
     folium.Marker(
         [y, x], 
-        icon=folium.Icon(color='green', icon='user', prefix='fa'),
-        tooltip="Link"
+        tooltip="Link est ici", 
+        icon=folium.Icon(color='green', icon='user', prefix='fa')
     ).add_to(m)
 
+    # Marqueurs Sanctuaires
     for _, s in df_top.iterrows():
-        color = 'lightgray' if s['visité'] == 1 else 'orange'
-        popup_html = f"<b>{s['name']}</b><br>Dist: {s['distance_m']:.0f}m"
+        est_fait = s['visité'] == 1
+        couleur = 'lightgray' if est_fait else 'orange'
+        popup_txt = f"<b>{s['name']}</b><br>Dist: {s['distance_m']:.0f}m<br>Temps: {s['temps']}"
+        
         folium.Marker(
             [s['y'], s['x']], 
-            popup=popup_html, 
-            icon=folium.Icon(color=color)
+            popup=popup_txt, 
+            icon=folium.Icon(color=couleur)
         ).add_to(m)
 
-    # 6. Affichage avec une taille fixe pour éviter que ça déborde sur mobile
-    st_folium(m, width=700, height=500, returned_objects=[])
-
-st.subheader("📋 Liste détaillée")
-st.dataframe(df_top[['name', 'region', 'distance_m', 'temps', 'visité']], use_container_width=True)
+    # Affichage final
+    st_folium(m, width=800, height=600, returned_objects=[])
