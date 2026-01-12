@@ -58,24 +58,46 @@ with col2:
     st.write(f"📊 **Progression : {int(st.session_state.df['visité'].sum())} / 152**")
 
 with col1:
-    # Carte Folium
-    m = folium.Map(crs='Simple', location=[y_pos, x_pos], zoom_start=0)
+    # 1. On définit les limites de la carte Hyrule
+    limites = [[-4000, -5000], [4000, 5000]]
+
+    # 2. Création de la carte avec paramètres de zoom optimisés
+    m = folium.Map(
+        crs='Simple', 
+        location=[y, x], 
+        zoom_start=-1,      # On commence avec un dézoom (négatif pour crs='Simple')
+        min_zoom=-2,       # Permet de dézoomer encore plus pour voir tout Hyrule
+        max_zoom=2,        # Limite le zoom pour ne pas devenir trop flou
+        zoom_control=True
+    )
+    
+    # 3. Ajout de l'image de fond
     folium.raster_layers.ImageOverlay(
         image="TOTK_Hyrule_Map.png", 
-        bounds=[[-4000, -5000], [4000, 5000]], 
+        bounds=limites, 
         opacity=0.8
     ).add_to(m)
-    
-    # Link
-    folium.Marker([y_pos, x_pos], icon=folium.Icon(color='green', icon='user', prefix='fa')).add_to(m)
 
-    # Sanctuaires
+    # 4. Ajuster la vue pour que TOUTE l'image soit visible dès le départ
+    m.fit_bounds(limites)
+
+    # 5. Ajout des marqueurs (Link et Sanctuaires)
+    folium.Marker(
+        [y, x], 
+        icon=folium.Icon(color='green', icon='user', prefix='fa'),
+        tooltip="Link"
+    ).add_to(m)
+
     for _, s in df_top.iterrows():
-        fait = (s['visité'] == 1)
-        color = 'lightgray' if fait else 'orange'
-        popup_html = f"<b>{s['name']}</b><br>Statut: {'✅ Fait' if fait else '⏳ À faire'}<br>Dist: {s['distance_m']:.0f}m<br>Temps: {s['temps']}"
-        folium.Marker([s['y'], s['x']], popup=popup_html, icon=folium.Icon(color=color)).add_to(m)
-    
+        color = 'lightgray' if s['visité'] == 1 else 'orange'
+        popup_html = f"<b>{s['name']}</b><br>Dist: {s['distance_m']:.0f}m"
+        folium.Marker(
+            [s['y'], s['x']], 
+            popup=popup_html, 
+            icon=folium.Icon(color=color)
+        ).add_to(m)
+
+    # 6. Affichage avec une taille fixe pour éviter que ça déborde sur mobile
     st_folium(m, width=700, height=500, returned_objects=[])
 
 st.subheader("📋 Liste détaillée")
