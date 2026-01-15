@@ -43,7 +43,7 @@ if 'df' not in st.session_state:
     st.session_state.df = load_data()
 
 # 3. Barre latérale : Paramètres de Link
-st.sidebar.title("🎮 Guide de Luca")
+st.sidebar.title("🎮 Bienvenue à toi Luca")
 x = st.sidebar.number_input("Position X", value=-254.0)
 y = st.sidebar.number_input("Position Y", value=107.0)
 k = st.sidebar.slider("Sanctuaires proches", 1, 20, 10)
@@ -108,9 +108,9 @@ with col1:
     m = folium.Map(
         crs='Simple', 
         location=[y, x], 
-        zoom_start=-1, 
+        zoom_start=0, 
         min_zoom=-3, 
-        max_zoom=2
+        max_zoom=3
     )
     
     # Ajout de l'image de fond (Map TOTK)
@@ -120,7 +120,7 @@ with col1:
         opacity=0.8
     ).add_to(m)
 
-    m.fit_bounds(limites)
+    # m.fit_bounds(limites)
 
     # Marqueur pour Link (Position actuelle)
     folium.Marker(
