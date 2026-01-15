@@ -9,6 +9,12 @@ import json
 # 1. Configuration de la page
 st.set_page_config(page_title="Radar Luca TOTK", layout="wide")
 
+# 1b. Sécurité pour la clé privée (Nettoyage automatique des sauts de ligne)
+if "connections" in st.secrets and "gsheets" in st.secrets["connections"]:
+    # On s'assure que les \n sont bien des caractères de saut de ligne
+    raw_key = st.secrets["connections"]["gsheets"]["private_key"]
+    st.secrets["connections"]["gsheets"]["private_key"] = raw_key.replace("\\n", "\n")
+
 # 2. Connexion à Google Sheets
 # Remplace 'url' par l'URL de ton Google Sheet partagé
 url = "https://docs.google.com/spreadsheets/d/1Kw65ATn2m9YkDZunhRVwWqUHKDgIg2B3d6eGusNckDo/edit#gid=0"
