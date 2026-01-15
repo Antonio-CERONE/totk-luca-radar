@@ -108,7 +108,7 @@ with col1:
     m = folium.Map(
         crs='Simple', 
         location=[y, x], 
-        zoom_start=0, 
+        zoom_start=-1, 
         min_zoom=-3, 
         max_zoom=3
     )
