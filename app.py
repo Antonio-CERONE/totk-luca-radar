@@ -5,55 +5,14 @@ from streamlit_folium import st_folium
 from streamlit_gsheets import GSheetsConnection
 import numpy as np
 import json
-import re
-import os
 
 # 1. Configuration de la page
 st.set_page_config(page_title="Radar Luca TOTK", layout="wide")
 
-# --- PRÉPARATION DES IDENTIFIANTS (Nettoyage Base64) ---
-def prepare_credentials():
-    try:
-        # Récupération de la clé brute
-        raw_key = st.secrets["connections"]["gsheets"]["private_key"]
-        
-        # Nettoyage de la clé (on enlève les espaces et sauts de ligne invisibles)
-        if "-----BEGIN PRIVATE KEY-----" in raw_key:
-            inner_key = raw_key.split("-----BEGIN PRIVATE KEY-----")[1].split("-----END PRIVATE KEY-----")[0]
-        else:
-            inner_key = raw_key
-        
-        clean_inner_key = re.sub(r'\s+', '', inner_key)
-        formatted_key = "-----BEGIN PRIVATE KEY-----\n" + clean_inner_key + "\n-----END PRIVATE KEY-----\n"
-        
-        # Création du dictionnaire JSON complet
-        creds = {
-            "type": st.secrets["connections"]["gsheets"]["type"],
-            "project_id": st.secrets["connections"]["gsheets"]["project_id"],
-            "private_key_id": st.secrets["connections"]["gsheets"]["private_key_id"],
-            "private_key": formatted_key,
-            "client_email": st.secrets["connections"]["gsheets"]["client_email"],
-            "client_id": st.secrets["connections"]["gsheets"]["client_id"],
-            "auth_uri": st.secrets["connections"]["gsheets"]["auth_uri"],
-            "token_uri": st.secrets["connections"]["gsheets"]["token_uri"],
-            "auth_provider_x509_cert_url": st.secrets["connections"]["gsheets"]["auth_provider_x509_cert_url"],
-            "client_x509_cert_url": st.secrets["connections"]["gsheets"]["client_x509_cert_url"]
-        }
-        
-        # On écrit ce dictionnaire dans un fichier temporaire
-        with open("temp_creds.json", "w") as f:
-            json.dump(creds, f)
-        return "temp_creds.json"
-    except Exception as e:
-        st.error(f"Erreur configuration Secrets : {e}")
-        st.stop()
-
-# 2. Connexion à Google Sheets via le fichier temporaire
+# 2. Connexion à Google Sheets
+# On laisse Streamlit gérer les secrets automatiquement via [connections.gsheets]
 url = "https://docs.google.com/spreadsheets/d/1Kw65ATn2m9YkDZunhRVwWqUHKDgIg2B3d6eGusNckDo/edit#gid=0"
-
-# On crée le fichier et on passe son chemin à st.connection
-path_to_creds = prepare_credentials()
-conn = st.connection("gsheets", type=GSheetsConnection, key_path=path_to_creds)
+conn = st.connection("gsheets", type=GSheetsConnection)
 
 @st.cache_data(ttl=600)
 def load_data():
