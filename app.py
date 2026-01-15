@@ -9,11 +9,15 @@ import json
 # 1. Configuration de la page
 st.set_page_config(page_title="Radar Luca TOTK", layout="wide")
 
-# 1b. Sécurité pour la clé privée (Nettoyage automatique des sauts de ligne)
+# 1b. Préparation des identifiants (Correction du format de la clé)
+# Au lieu de modifier st.secrets, on crée un dictionnaire de configuration
 if "connections" in st.secrets and "gsheets" in st.secrets["connections"]:
-    # On s'assure que les \n sont bien des caractères de saut de ligne
-    raw_key = st.secrets["connections"]["gsheets"]["private_key"]
-    st.secrets["connections"]["gsheets"]["private_key"] = raw_key.replace("\\n", "\n")
+    secret_gsheets = dict(st.secrets["connections"]["gsheets"])
+    # On nettoie la clé dans notre copie locale
+    secret_gsheets["private_key"] = secret_gsheets["private_key"].replace("\\n", "\n")
+else:
+    st.error("Les secrets GSheets ne sont pas configurés dans Streamlit Cloud.")
+    st.stop()
 
 # 2. Connexion à Google Sheets
 # Remplace 'url' par l'URL de ton Google Sheet partagé
