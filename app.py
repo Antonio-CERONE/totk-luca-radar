@@ -9,14 +9,25 @@ import json
 # 1. Configuration de la page
 st.set_page_config(page_title="Radar Luca TOTK", layout="wide")
 
-# 1b. Préparation des identifiants (Correction du format de la clé)
-# Au lieu de modifier st.secrets, on crée un dictionnaire de configuration
+# 1b. Préparation manuelle des identifiants (C'est ici qu'on règle le binascii.Error)
+# On récupère les secrets gsheets
 if "connections" in st.secrets and "gsheets" in st.secrets["connections"]:
-    secret_gsheets = dict(st.secrets["connections"]["gsheets"])
-    # On nettoie la clé dans notre copie locale
-    secret_gsheets["private_key"] = secret_gsheets["private_key"].replace("\\n", "\n")
+    # On crée un dictionnaire propre à partir des secrets
+    creds_dict = {
+        "type": st.secrets["connections"]["gsheets"]["type"],
+        "project_id": st.secrets["connections"]["gsheets"]["project_id"],
+        "private_key_id": st.secrets["connections"]["gsheets"]["private_key_id"],
+        # FORCE le remplacement des \n textuels par des vrais sauts de ligne
+        "private_key": st.secrets["connections"]["gsheets"]["private_key"].replace("\\n", "\n"),
+        "client_email": st.secrets["connections"]["gsheets"]["client_email"],
+        "client_id": st.secrets["connections"]["gsheets"]["client_id"],
+        "auth_uri": st.secrets["connections"]["gsheets"]["auth_uri"],
+        "token_uri": st.secrets["connections"]["gsheets"]["token_uri"],
+        "auth_provider_x509_cert_url": st.secrets["connections"]["gsheets"]["auth_provider_x509_cert_url"],
+        "client_x509_cert_url": st.secrets["connections"]["gsheets"]["client_x509_cert_url"],
+    }
 else:
-    st.error("Les secrets GSheets ne sont pas configurés dans Streamlit Cloud.")
+    st.error("Secrets GSheets manquants dans Streamlit Cloud.")
     st.stop()
 
 # 2. Connexion à Google Sheets
