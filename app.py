@@ -9,14 +9,12 @@ import json
 # 1. Configuration de la page
 st.set_page_config(page_title="Radar Luca TOTK", layout="wide")
 
-# 2. Préparation manuelle des identifiants (Correction de l'erreur binascii)
-# On extrait les secrets et on répare la clé privée avant la connexion
+# 2. Préparation manuelle des identifiants (Correction de l'erreur binascii et TypeError)
 if "connections" in st.secrets and "gsheets" in st.secrets["connections"]:
     creds_dict = {
         "type": st.secrets["connections"]["gsheets"]["type"],
         "project_id": st.secrets["connections"]["gsheets"]["project_id"],
         "private_key_id": st.secrets["connections"]["gsheets"]["private_key_id"],
-        # Cette ligne transforme les \n textuels en vrais sauts de ligne
         "private_key": st.secrets["connections"]["gsheets"]["private_key"].replace("\\n", "\n"),
         "client_email": st.secrets["connections"]["gsheets"]["client_email"],
         "client_id": st.secrets["connections"]["gsheets"]["client_id"],
@@ -26,13 +24,14 @@ if "connections" in st.secrets and "gsheets" in st.secrets["connections"]:
         "client_x509_cert_url": st.secrets["connections"]["gsheets"]["client_x509_cert_url"],
     }
 else:
-    st.error("⚠️ Les Secrets GSheets ne sont pas configurés dans Streamlit Cloud.")
+    st.error("⚠️ Les Secrets GSheets ne sont pas configurés.")
     st.stop()
 
 # 3. Connexion à Google Sheets
 url = "https://docs.google.com/spreadsheets/d/1Kw65ATn2m9YkDZunhRVwWqUHKDgIg2B3d6eGusNckDo/edit?usp=sharing"
-# On utilise creds_dict pour forcer la clé corrigée
-conn = st.connection("gsheets", type=GSheetsConnection, **creds_dict)
+
+# CORRECTION ICI : On passe les identifiants via 'service_account_info'
+conn = st.connection("gsheets", type=GSheetsConnection, service_account_info=creds_dict)
 
 @st.cache_data(ttl=600)
 def load_data():
