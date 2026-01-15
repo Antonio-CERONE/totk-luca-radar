@@ -1,6 +1,7 @@
-streamlit
+streamlit>=1.28.0
+st-gsheets-connection
+google-auth
 pandas
 folium
 streamlit-folium
-st-gsheets-connection
 numpy
